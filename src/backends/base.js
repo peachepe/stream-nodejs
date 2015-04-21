@@ -98,21 +98,16 @@ BaseBackend.prototype = {
     var enrichments = [];
     var self = this;
     for (var i in aggregatedActivities) {
-      var enrichment = self.makeEnrichmentFunction(i, aggregatedActivities, callback);
-      enrichments.push(enrichment);
+      enrichments.push(
+        function(aggregated){
+          return function(done) {
+            self.enrichActivities(aggregated['activities'], function(err, results) {
+              done(err, aggregated);
+            });
+          }
+        }(aggregatedActivities[i]))
     }
-    async.parallel(enrichments, function(err, results) {
-      callback(err, aggregatedActivities);
-    });
-  },
-  makeEnrichmentFunction: function(i, aggregatedActivities, callback) {
-    var self = this;
-    return function(callback) {
-      self.enrichActivities(aggregatedActivities[i]['activities'], function(err, results) {
-        aggregatedActivities[i].activities = results;
-        callback(err, results);
-      });
-    }
+    async.parallel(enrichments, function(err) { callback(err, aggregatedActivities); });
   },
   serializeActivities: function(activities){
     var self = this;
